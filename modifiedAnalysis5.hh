@@ -23,5 +23,11 @@ Bool_t verbosity;
 Double_t tarMass1H = cs::mass1H;
 Double_t tarMass2H = cs::mass2H;
 
+Double_t proBeamIntegral, deutBeamIntegral, proTargetThick, deutTargetThick;
+Double_t proBeamTargetConst, deutBeamTargetConst;
+
+Int_t protium = 1;
+Int_t deuterium = 2;
+
 
 #endif

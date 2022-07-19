@@ -1,5 +1,31 @@
 #include "modifiedAnalysis5.hh"
 
+std::vector<Double_t> getRelativeError(TH1F *my1DHist)
+{
+	//prepare relative errors for real data
+	Int_t noBins = my1DHist->GetXaxis()->GetNbins();
+	std::vector<Double_t> relativeError(noBins);
+	for (int iii = 0; iii < noBins; iii++)
+	{
+		if (my1DHist->GetBinContent(iii)>0.0)
+		{
+			relativeError.at(iii) = my1DHist->GetBinError(iii)/my1DHist->GetBinContent(iii);
+			//printf("Bin: %d\tbin value: %f\tbin error: %f\t%f\n", iii, my1DHist->GetBinContent(iii),my1DHist->GetBinError(iii), relativeError.at(iii)*100.0);
+		}
+	}
+	return relativeError;
+}
+
+void setRelativeError(TH1F *myHist, std::vector<Double_t> relativeError, Double_t additionalError = 0.0)
+{
+	for (int iii = 0; iii < myHist->GetXaxis()->GetNbins(); iii++)
+	{
+		//realPPgeo1HistError.at(iii) = realPPgeo1Hist->GetBinError(iii)/realPPgeo1Hist->GetBinContent(iii);
+		//printf("Error at bin[%d] = %f\n", iii, realPPgeo1HistError.at(iii));
+		myHist->SetBinError(iii, myHist->GetBinContent(iii)*(relativeError.at(iii) + additionalError));
+	}
+}
+
 void trimHistogramLeft(TH1F *tmpHisto, Int_t noBins)
 {
 	Int_t minimumBin = tmpHisto->FindFirstBinAbove(0.1);
@@ -21,126 +47,92 @@ void trimHistogramRight(TH1F *tmpHisto, Int_t noBins)
 
 void makeGraph()
 {
-	TString mcDataPath = "/home/zalewski/Desktop/6He/analysis/data5Out/MCDataCMHisto5.root";
-	TFile mcDataFile(mcDataPath.Data(), "UPDATE");
-
-	TString histName = "ppMC_geo5_CM";
-	TH1F *mcPPgeo5Hist = (TH1F*)mcDataFile.Get(histName.Data());
-	
-	histName.ReplaceAll("pp", "dd");
-	TH1F *mcDDgeo5Hist = (TH1F*)mcDataFile.Get(histName.Data());
-
-	TString realDataPath = "/home/zalewski/Desktop/6He/analysis/data5Out/realDataCMHisto5.root";
-	TFile realDataFile(realDataPath.Data(), "READ");
-	histName = "ppReal_geo5_CM";
-	TH1F *realPPgeo5Hist = (TH1F*)realDataFile.Get(histName.Data());
-
-	histName.ReplaceAll("pp", "dd").ReplaceAll("geo3","geo1");
-	TH1F *realDDgeo5Hist = (TH1F*)realDataFile.Get(histName.Data());
-
-	TString ppGraphTitle = "Elastic scattering 6He+p";
-	TString ddGraphTitle = "Elastic scattering 6He+d";
-	
-	TCanvas *canvasPP = new TCanvas("canvasPP","canvasPP",10,10,1200,700);
-	THStack *ppxSectStack = new THStack("PP X-section stack", ppGraphTitle.Data());
+	//open efficiency file, xSect file and file with models
+	TFile efficiencyDataFile("/home/zalewski/Desktop/6He/analysis/data5Out/efficiency5.root", "READ");
+	TFile xSectionFile("/home/zalewski/Desktop/6He/analysis/data5Out/xSection.root", "READ");
 	TFile theoHistFile("/home/zalewski/Desktop/6He/analysis/dataOut/source/theoHists.root", "READ");
+
+	//get histograms for protons
+	TString efficiencyHistName = "efficiency_geo5_1H";
+	TH1F *eff_geo5_1H = (TH1F*)efficiencyDataFile.Get(efficiencyHistName.Data());
+	TString histoName = "xSect_geo5_1H";	
+	TH1F *xSect_geo5_1H = (TH1F*)xSectionFile.Get(histoName.Data());
+
+	//get histograms for deuterons
+	efficiencyHistName = "efficiency_geo5_2H";
+	TH1F *eff_geo5_2H = (TH1F*)efficiencyDataFile.Get(efficiencyHistName.Data());
+	histoName = "xSect_geo5_2H";
+	TH1F *xSect_geo5_2H = (TH1F*)xSectionFile.Get(histoName.Data());
+
+	//get histograms with models
 	TH1F *wolskiExp = (TH1F*)theoHistFile.Get("wolskiExp");
 	TH1F *wolskiOM = (TH1F*)theoHistFile.Get("wolskiOM");
+	TH1F *expPP = (TH1F*)theoHistFile.Get("expPP");
+	TH1F *perey = (TH1F*)theoHistFile.Get("perey");
+	TH1F *daehnick = (TH1F*)theoHistFile.Get("daehnick");
+	TH1F *Li6d = (TH1F*)theoHistFile.Get("Li6d");
+	TH1F *expDD = (TH1F*)theoHistFile.Get("expDD");
+	TH1F *expDD1 = (TH1F*)theoHistFile.Get("expDD1");
 
-	TH1F *xSectPP = new TH1F("xSectPP","xSectPP",90,0,180);
-	xSectPP->SetBinContent(15, 1.0*165.578293144036);
-	xSectPP->SetBinContent(16, 1.0*140.718631211516);
-	xSectPP->SetBinContent(17, 1.0*125.660854195774);
-	xSectPP->SetBinContent(18, 1.0*149.31528473443);
-	xSectPP->SetBinContent(19, 1.0*124.483452014524);
-	xSectPP->SetBinContent(20, 1.0*105.283409917899);
-	xSectPP->SetBinContent(21, 1.0*80.955529943601);
-	xSectPP->SetBinContent(22, 1.0*80.158040438495);
-	xSectPP->SetBinContent(23, 1.0*62.622811969959);
-	xSectPP->SetBinContent(24, 1.0*43.349015378232);
-
-/*
-	xSectPP->SetBinContent(20, 92.55);
-	xSectPP->SetBinContent(21, 78.81);
-	xSectPP->SetBinContent(22, 80.72);
-	xSectPP->SetBinContent(23, 68.28);
-	xSectPP->SetBinContent(24, 57.08);
-*/
-	xSectPP->SetMarkerStyle(3);
-	xSectPP->SetMarkerSize(2);
-	xSectPP->SetMarkerColor(kBlack);
-
+	TCanvas *canvasPP = new TCanvas("canvasPP","canvasPP",10,10,1200,700);
+	TString ppGraphTitle = "Differential cross-section of 6He(p,p)6He reaction";
+	THStack *ppxSectStack = new THStack("PP X-section stack", ppGraphTitle.Data());
 	canvasPP->SetLogy();
-	Int_t normFactor = 1200;
-	realPPgeo5Hist->Divide(mcPPgeo5Hist);
-	realPPgeo5Hist->Scale(normFactor);
-	realPPgeo5Hist->SetMarkerStyle(20);
-	realPPgeo5Hist->SetMarkerSize(1);
-	realPPgeo5Hist->SetMarkerColor(kRed);
 
-	wolskiExp->SetMarkerStyle(20);
-	wolskiExp->SetMarkerSize(1);
+
+	trimHistogramLeft(eff_geo5_1H, 0);
+	trimHistogramRight(eff_geo5_1H, 0);
+
+	ppxSectStack->Add(xSect_geo5_1H);
+	expPP->SetMarkerStyle(20);
+	expPP->SetMarkerSize(1.2);
+	expPP->SetMarkerColor(kRed);
+	
+	wolskiExp->SetMarkerStyle(3);
+	wolskiExp->SetMarkerSize(2);
 	wolskiExp->SetMarkerColor(kBlack);
 
-	wolskiOM->SetLineStyle(1);
-	wolskiOM->SetLineColor(kBlack);
 
-	trimHistogramLeft(realPPgeo5Hist, 7);
-	trimHistogramRight(realPPgeo5Hist, 0);
-
-	//ppxSectStack->Add(realPPgeo5Hist);
-	ppxSectStack->Add(wolskiExp);
-	ppxSectStack->Add(xSectPP);
 	ppxSectStack->Add(wolskiOM, "L");
-
-	ppxSectStack->SetMinimum(0.01);
+	ppxSectStack->Add(wolskiExp, "E1");
+	//ppxSectStack->Add(expPP,"E1");
+	
+	wolskiOM->SetLineWidth(2);
+	ppxSectStack->SetMinimum(0.1);
 	ppxSectStack->SetMaximum(1000);
+	
 	ppxSectStack->Draw();
-	ppxSectStack->GetXaxis()->SetTitle("CM angle [deg]");
+	ppxSectStack->GetXaxis()->SetTitle("#theta_{c.m.}[deg]");
+	ppxSectStack->GetXaxis()->SetRangeUser(0,140);
 	ppxSectStack->GetXaxis()->CenterTitle();
 	ppxSectStack->GetYaxis()->CenterTitle();
-	ppxSectStack->GetYaxis()->SetTitle("Differential cross section [mb/sr]");
+
+	ppxSectStack->GetYaxis()->SetTitle("d#sigma/d#omega [mb/sr]");
 	ppxSectStack->Draw("HIST, nostack,p");
 
-	TLegend *legend = new TLegend(0.7,0.7,0.9,0.9);
-	legend->AddEntry(wolskiExp,"Wolski data","p");
-	legend->AddEntry(wolskiOM,"Wolski OM","L");
-	legend->AddEntry(xSectPP,"gas target data","p");
-	legend->Draw();
+	TLegend *legendPP = new TLegend(0.7,0.7,0.9,0.9);
+	legendPP->AddEntry(wolskiExp,"Existing data","p");
+	legendPP->AddEntry(wolskiOM,"6He+p OM","L");
+	//legendPP->AddEntry(expPP,"This measurement","p");
+	legendPP->Draw();
 
 	TString outPPFileName = "/home/zalewski/Desktop/6He/analysis/data5Out/pp.png";
 	canvasPP->Print(outPPFileName.Data());
 	canvasPP->SaveAs("/home/zalewski/Desktop/6He/analysis/data5Out/pp.C");
 	delete ppxSectStack;
 	delete canvasPP;
-/*
+
 	TCanvas *canvasDD = new TCanvas("canvasDD","canvasDD",10,10,1200,700);
+	TString ddGraphTitle = "Elastic scattering 6He+d";
 	THStack *ddxSectStack = new THStack("DD X-section stack", ddGraphTitle.Data());
-	TH1F *pereyPerey = new TH1F("perey","pereyPerey",90,0,180);
-	#include "/home/zalewski/Desktop/6He/analysis/dataOut/source/pereyPerey.hh"
-	TH1F *daehnick = new TH1F("dae","daehnick",90,0,180);
-	#include "/home/zalewski/Desktop/6He/analysis/dataOut/source/daehnick.hh"
 	canvasDD->SetLogy();
-	normFactor = 5500;
-	Double_t deuterMod = 2.0;
-	realDDgeo5Hist->Divide(mcDDgeo5Hist);
-	realDDgeo5Hist->Scale(normFactor);
-	realDDgeo5Hist->SetMarkerStyle(20);
-	realDDgeo5Hist->SetMarkerSize(1);
-	realDDgeo5Hist->SetMarkerColor(kRed);
 
-	pereyPerey->SetLineStyle(1);
-	pereyPerey->SetLineColor(kBlack);
+	trimHistogramLeft(xSect_geo5_2H, 0);
+	trimHistogramRight(xSect_geo5_2H, 0);
 
-	daehnick->SetLineStyle(10);
-	daehnick->SetLineColor(kBlack);
-
-	trimHistogramLeft(realDDgeo5Hist, 0);
-	trimHistogramRight(realDDgeo5Hist, 0);
-
-	ddxSectStack->Add(realDDgeo5Hist);
+	ddxSectStack->Add(xSect_geo5_2H);
 	ddxSectStack->Add(daehnick, "L");
-	ddxSectStack->Add(pereyPerey, "L");
+	ddxSectStack->Add(expDD);
 
 	ddxSectStack->SetMinimum(0.01);
 	ddxSectStack->SetMaximum(10000);
@@ -152,17 +144,17 @@ void makeGraph()
 	ddxSectStack->GetYaxis()->SetTitle("Differential cross section [mb/sr]");
 	ddxSectStack->Draw("HIST, nostack,p");
 
-	TLegend *legend = new TLegend(0.7,0.7,0.9,0.9);
-	legend->AddEntry(realDDgeo5Hist,"Geometry 5","p");
-	legend->AddEntry(daehnick,"Daehnick, PRC 6, 2253 (1980)","L");
-	legend->AddEntry(pereyPerey,"Perey-Perey","L");
-	legend->Draw();
+	TLegend *legendDD = new TLegend(0.7,0.7,0.9,0.9);
+	legendDD->AddEntry(xSect_geo5_2H,"Geometry 5","p");
+	legendDD->AddEntry(daehnick,"Daehnick, PRC 6, 2253 (1980)","L");
+	legendDD->Draw();
 
-	TString outDDFileName = "/home/zalewski/Desktop/6He/analysis/dataOut/dd.png";
+	TString outDDFileName = "/home/zalewski/Desktop/6He/analysis/data5Out/dd.png";
 	canvasDD->Print(outDDFileName.Data());
+	canvasDD->SaveAs("/home/zalewski/Desktop/6He/analysis/data5Out/dd.C");
 
 	delete canvasDD;
-	delete ddxSectStack;*/
+	delete ddxSectStack;
 }
 
 void makeSmallFile()
@@ -338,32 +330,26 @@ TVector3 getRightDetPosition()
 	return TVector3(X6Helab, Y6Helab, Z6Helab);
 }
 
-Double_t getMCAngle1H(Double_t m_LAng, TLorentzVector m_lvBeam)
+Double_t getCMAngle1H(Double_t m_LAng, TLorentzVector m_lvBeam)
 {
 	TLorentzVector m_lvTar(0.0, 0.0, 0.0, cs::mass1H);
 	TLorentzVector m_lvCM = m_lvTar + m_lvBeam;
-	TVector3 m_vBoost = m_lvCM.BoostVector();
-
-	Double_t m_ThetaCM2H = m_lvCM.Theta();
 	Double_t m_gammaSquare2H = m_lvCM.Gamma()*m_lvCM.Gamma();
 	Double_t m_tanSquare = tan(m_LAng*TMath::DegToRad()) * tan(m_LAng*TMath::DegToRad());
-	Double_t m_cosLeftAng = (1.0 - m_gammaSquare2H*m_tanSquare)/(1 + m_gammaSquare2H*m_tanSquare);
-	Double_t m_leftAngleCM = (TMath::Pi() - (acos(m_cosLeftAng)-m_ThetaCM2H))*TMath::RadToDeg();
-	return m_leftAngleCM;
+	Double_t m_cosLeftAng = (1.0 - m_gammaSquare2H*m_tanSquare)/(1.0 + m_gammaSquare2H*m_tanSquare);
+	Double_t m_sqlangCM = (TMath::Pi()-acos(m_cosLeftAng))*TMath::RadToDeg();
+	return m_sqlangCM;
 }
 
-Double_t getMCAngle2H(Double_t m_LAng, TLorentzVector m_lvBeam)
+Double_t getCMAngle2H(Double_t m_LAng, TLorentzVector m_lvBeam)
 {
 	TLorentzVector m_lvTar(0.0, 0.0, 0.0, cs::mass2H);
 	TLorentzVector m_lvCM = m_lvTar + m_lvBeam;
-	TVector3 m_vBoost = m_lvCM.BoostVector();
-
-	Double_t m_ThetaCM2H = m_lvCM.Theta();
 	Double_t m_gammaSquare2H = m_lvCM.Gamma()*m_lvCM.Gamma();
 	Double_t m_tanSquare = tan(m_LAng*TMath::DegToRad()) * tan(m_LAng*TMath::DegToRad());
-	Double_t m_cosLeftAng = (1.0 - m_gammaSquare2H*m_tanSquare)/(1 + m_gammaSquare2H*m_tanSquare);
-	Double_t m_leftAngleCM = (TMath::Pi() - (acos(m_cosLeftAng)-m_ThetaCM2H))*TMath::RadToDeg();
-	return m_leftAngleCM;
+	Double_t m_cosLeftAng = (1.0 - m_gammaSquare2H*m_tanSquare)/(1.0 + m_gammaSquare2H*m_tanSquare);
+	Double_t m_sqlangCM = (TMath::Pi()-acos(m_cosLeftAng))*TMath::RadToDeg();
+	return m_sqlangCM;
 }
 
 void realDataAnalyzer()
@@ -390,15 +376,15 @@ void realDataAnalyzer()
 						.Define("v2H", "leftGlobVertex-tarVertex")
 						.Define("v6He", "rightGlobVertex-tarVertex")
 						.Define("leftAngle", [](TVector3 v2H, TVector3 vBeam){return v2H.Angle(vBeam)*TMath::RadToDeg();}, {"v2H", "vBeam"})
-                        .Define("mc1H", getMCAngle1H, {"leftAngle", "lvBeam"})
-					    .Define("mc2H", getMCAngle2H, {"leftAngle", "lvBeam"})
+                        .Define("mc1H", getCMAngle1H, {"leftAngle", "lvBeam"})
+					    .Define("mc2H", getCMAngle2H, {"leftAngle", "lvBeam"})
 						.Define("rightAngle", [](TVector3 v6He, TVector3 vBeam){return v6He.Angle(vBeam)*TMath::RadToDeg();}, {"v6He", "vBeam"})
 						.Define("tarCut", "(tarVertex.X()+4.07)*(tarVertex.X()+4.07)+tarVertex.Y()*tarVertex.Y()<9");
 
-	TString ppHistoName5 = "ppReal_geo5_CM";
+	TString ppHistoName5 = "real_geo5_1H";
 	auto ppCMHist5 = newDF.Filter("pp && tarCut").Histo1D({ppHistoName5.Data(), "Real elastic scattering on protons", 90,0,180}, {"mc1H"});
 
-	TString ddHistoName5 = "ddReal_geo5_CM";
+	TString ddHistoName5 = "real_geo5_2H";
 	auto ddCMHist5 = newDF.Filter("dd && tarCut").Histo1D({ddHistoName5.Data(), "Real elastic scattering on deuterons", 90,0,180}, {"mc2H"});
 
 	newDF.Snapshot("checkTargetVertex", "/home/zalewski/Desktop/tar.root");
@@ -435,8 +421,8 @@ void MCDataAnalyzer()
 						.Define("v2H", "leftGlobVertex-tarVertex")
 						.Define("v6He", "rightGlobVertex-tarVertex")
 						.Define("leftAngle", [](TVector3 v2H, TVector3 vBeam){return v2H.Angle(vBeam)*TMath::RadToDeg();}, {"v2H", "vBeam"})
-                        .Define("mc1H", getMCAngle1H, {"leftAngle", "lvBeam"})
-					    .Define("mc2H", getMCAngle2H, {"leftAngle", "lvBeam"})
+                        .Define("mc1H", getCMAngle1H, {"leftAngle", "lvBeam"})
+					    .Define("mc2H", getCMAngle2H, {"leftAngle", "lvBeam"})
 						.Define("rightAngle", [](TVector3 v6He, TVector3 vBeam){return v6He.Angle(vBeam)*TMath::RadToDeg();}, {"v6He", "vBeam"})
 						.Define("tarCut", "tarVertex.X()*tarVertex.X()+tarVertex.Y()*tarVertex.Y()<9");
 
@@ -453,16 +439,151 @@ void MCDataAnalyzer()
 	histOutputFile.Close();
 }
 
+void calculateEfficiency(Int_t mass)
+{
+	TFile histOutputFile("/home/zalewski/Desktop/6He/analysis/data5Out/efficiency5.root", "UPDATE");	
+	TString inFName = TString::Format("/home/zalewski/dataTmp/MC/geo5/mc_out5_%dH.root", mass);
+	TString histoName = TString::Format("scattered_geo5_%dH", mass);	
+	TString histoTitle = TString::Format("Theta angle scattered of {}^{%d}H in geo5 [CM deg]", mass);
+
+	if (mass==1)
+	{
+		ROOT::RDataFrame inDF("analyzed", inFName.Data());
+		auto scattered = inDF.Filter("(tarVertex.X()+4.07)*(tarVertex.X()+4.07)+tarVertex.Y()*tarVertex.Y()<9")
+							.Define("thetaCMAngle", getCMAngle1H,{"fsqlang","lvBeam"})
+							.Histo1D<Double_t>({histoName.Data(), histoTitle.Data(), 90,0,180}, {"thetaCMAngle"});
+		scattered->Write(scattered->GetName(), 1);
+
+			//pp in geo1 observed
+		histoName.ReplaceAll("scattered", "observed");
+		histoTitle.ReplaceAll("scattered", "observed");
+		auto observed = inDF.Filter("(tarVertex.X()+4.07)*(tarVertex.X()+4.07)+tarVertex.Y()*tarVertex.Y()<9")
+							.Filter("sqlde>0 && sqrde>0 && mcHe6 && mcPP")
+							.Define("thetaCMAngle", getCMAngle1H,{"fsqlang","lvBeam"})
+							.Histo1D<Double_t>({histoName.Data(), histoTitle.Data(), 90,0,180}, {"thetaCMAngle"});
+		observed->Write(observed->GetName(), 1);
+
+		TH1D efficiency(*scattered);
+		efficiency.Divide(&(observed.GetValue()));
+		histoName.ReplaceAll("observed", "efficiency");
+		histoTitle = TString::Format("Efficiency of {}^{%d}H detection in geo5 [CM deg]", mass);
+		efficiency.SetNameTitle(histoName.Data(), histoTitle.Data());
+		efficiency.SetMarkerStyle(3);
+		efficiency.SetMarkerSize(2);
+		efficiency.SetMarkerColor(kBlack);
+		efficiency.Write(efficiency.GetName(), 1);
+	}
+	
+	else if (mass==2)
+	{
+		ROOT::RDataFrame inDF("analyzed", inFName.Data());
+		auto scattered = inDF.Filter("(tarVertex.X()+4.07)*(tarVertex.X()+4.07)+tarVertex.Y()*tarVertex.Y()<9")
+							.Define("thetaCMAngle", getCMAngle2H,{"fsqlang","lvBeam"})
+							.Histo1D<Double_t>({histoName.Data(), histoTitle.Data(), 90,0,180}, {"thetaCMAngle"});
+		scattered->Write(scattered->GetName(), 1);
+
+			//pp in geo1 observed
+		histoName.ReplaceAll("scattered", "observed");
+		histoTitle.ReplaceAll("scattered", "observed");
+		auto observed = inDF.Filter("(tarVertex.X()+4.07)*(tarVertex.X()+4.07)+tarVertex.Y()*tarVertex.Y()<9")
+							.Filter("sqlde>0 && sqrde>0 && mcHe6 && mcDD")
+							.Define("thetaCMAngle", getCMAngle2H,{"fsqlang","lvBeam"})
+							.Histo1D<Double_t>({histoName.Data(), histoTitle.Data(), 90,0,180}, {"thetaCMAngle"});
+		observed->Write(observed->GetName(), 1);
+
+		TH1D efficiency(*scattered);
+		efficiency.Divide(&(observed.GetValue()));
+		histoName.ReplaceAll("observed", "efficiency");
+		histoTitle = TString::Format("Efficiency of {}^{%d}H detection in geo5 [CM deg]", mass);
+		efficiency.SetNameTitle(histoName.Data(), histoTitle.Data());
+		efficiency.SetMarkerStyle(3);
+		efficiency.SetMarkerSize(2);
+		efficiency.SetMarkerColor(kBlack);
+		efficiency.Write(efficiency.GetName(), 1);
+	}
+
+
+}
+
+void calculateXsection(Int_t mass, Double_t additionalError = 0.0)
+{
+	//efficiency histogram
+	TString efficiencyDataPath = "/home/zalewski/Desktop/6He/analysis/data5Out/efficiency5.root";
+	TFile efficiencyDataFile(efficiencyDataPath.Data(), "READ");
+	if (!efficiencyDataFile.IsOpen())
+	{
+		printf("Couldn't open efficiency histogram file in geo5\n");
+	}
+
+	TString efficiencyHistName = TString::Format("efficiency_geo5_%dH", mass);
+	TH1F *efficiencyHist = (TH1F*)efficiencyDataFile.Get(efficiencyHistName.Data());
+
+	//theta integral histogram
+	TH1F thetaIntegral("thetaIntegral", "thetaIntegral", 90,0,180);
+	for (int iii = 0; iii < 90; iii++)
+	{
+		thetaIntegral.SetBinContent(iii, cos(2.0*iii*TMath::DegToRad())-cos(2.0*(iii+1)*TMath::DegToRad()));
+	}
+
+	//real data histogram
+	TString realDataPath = "/home/zalewski/Desktop/6He/analysis/data5Out/realDataCMHisto5.root";
+	TFile realDataFile(realDataPath.Data(), "READ");
+	TString realHistName = TString::Format("real_geo5_%dH", mass);
+	TH1F *realHist = (TH1F*)realDataFile.Get(realHistName.Data());
+
+	std::vector<Double_t> relativeError = getRelativeError(realHist);
+
+	TString xSectionHistName = TString::Format("xSect_geo5_%dH", mass);
+	TString xSectionHistTitle = TString::Format("Elastic scattering cross section for {}^{6}He + {}^{%d}H reaction in geo5 [CM deg]", mass);
+	TH1F xSection(*realHist);
+	xSection.SetNameTitle(xSectionHistName.Data(), xSectionHistTitle.Data());
+	xSection.Divide(&thetaIntegral);
+	xSection.Multiply(efficiencyHist);
+	if (mass == 1)
+	{
+		xSection.Scale(proBeamTargetConst);
+	}
+
+	else if (mass == 2)
+	{
+		xSection.Scale(deutBeamTargetConst);
+	}
+	
+	setRelativeError(&xSection, relativeError, additionalError);
+
+	xSection.SetMarkerStyle(20);
+	xSection.SetMarkerSize(1);
+	xSection.SetMarkerColor(kRed);
+
+	TFile xSectionFile("/home/zalewski/Desktop/6He/analysis/data5Out/xSection.root", "UPDATE");
+	xSection.Write(xSection.GetName(), 1);
+
+	getRelativeError(&xSection);
+}
+
 void modifiedAnalysis5()
 {
 	ROOT::EnableImplicitMT();
 	TStopwatch *stopwatch = new TStopwatch();
 	verbosity=false;
 
+	proBeamIntegral = 68.5221322e+07;
+	deutBeamIntegral = 252.0620308e+07;
+	proTargetThick = 1.75e+20;
+	deutTargetThick = 1.71e+20;
+	//	1mb = 1e-27cm^2 => 1/(beamIntegral*Tar*2*PI()) [mb]=
+	//	protons:	1/(68.5221322 * 1.75 * 2 * PI()) [mb]
+	//	deuterons	1/(252.0620308 * 1.71 * 2 * PI()) [mb]
+	proBeamTargetConst = 1.0/(68.5221322 * 1.75 * TMath::TwoPi());
+	deutBeamTargetConst = 1.0/(252.0620308 * 1.71 * TMath::TwoPi());
+	printf("pro: %f\tdeu: %f\n", proBeamTargetConst, deutBeamTargetConst);
 	
 	//makeSmallFile(5);
     //realDataAnalyzer();
-	//MCDataAnalyzer();
+	//calculateEfficiency(protium);
+	//calculateEfficiency(deuterium);
+	//calculateXsection(protium);
+	//calculateXsection(deuterium);
 	makeGraph();
 
 }

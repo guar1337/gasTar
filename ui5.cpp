@@ -26,31 +26,25 @@ void joindE()
 	//smallDF.Snapshot("small", "/home/zalewski/dataTmp/small5/small5_sizeChck.root", columnList);
 }
 
-Double_t getMCAngle1H(Double_t m_LAng, TLorentzVector m_lvBeam)
+Double_t getCMAngle1H(Double_t m_LAng, TLorentzVector m_lvBeam)
 {
 	TLorentzVector m_lvTar(0.0, 0.0, 0.0, cs::mass1H);
 	TLorentzVector m_lvCM = m_lvTar + m_lvBeam;
-	TVector3 m_vBoost = m_lvCM.BoostVector();
-
-	Double_t m_ThetaCM2H = m_lvCM.Theta();
 	Double_t m_gammaSquare2H = m_lvCM.Gamma()*m_lvCM.Gamma();
 	Double_t m_tanSquare = tan(m_LAng*TMath::DegToRad()) * tan(m_LAng*TMath::DegToRad());
 	Double_t m_cosLeftAng = (1.0 - m_gammaSquare2H*m_tanSquare)/(1.0 + m_gammaSquare2H*m_tanSquare);
-	Double_t m_sqlangCM = (acos(m_cosLeftAng)-m_ThetaCM2H)*TMath::RadToDeg();
+	Double_t m_sqlangCM = (TMath::Pi()-acos(m_cosLeftAng))*TMath::RadToDeg();
 	return m_sqlangCM;
 }
 
-Double_t getMCAngle2H(Double_t m_LAng, TLorentzVector m_lvBeam)
+Double_t getCMAngle2H(Double_t m_LAng, TLorentzVector m_lvBeam)
 {
 	TLorentzVector m_lvTar(0.0, 0.0, 0.0, cs::mass2H);
 	TLorentzVector m_lvCM = m_lvTar + m_lvBeam;
-	TVector3 m_vBoost = m_lvCM.BoostVector();
-
-	Double_t m_ThetaCM2H = m_lvCM.Theta();
 	Double_t m_gammaSquare2H = m_lvCM.Gamma()*m_lvCM.Gamma();
 	Double_t m_tanSquare = tan(m_LAng*TMath::DegToRad()) * tan(m_LAng*TMath::DegToRad());
 	Double_t m_cosLeftAng = (1.0 - m_gammaSquare2H*m_tanSquare)/(1.0 + m_gammaSquare2H*m_tanSquare);
-	Double_t m_sqlangCM = (acos(m_cosLeftAng)-m_ThetaCM2H)*TMath::RadToDeg();
+	Double_t m_sqlangCM = (TMath::Pi()-acos(m_cosLeftAng))*TMath::RadToDeg();
 	return m_sqlangCM;
 }
 
@@ -236,8 +230,8 @@ Double_t getPPLang(Double_t m_thetaCM, TLorentzVector m_lvBeam)
 
 	//m_lv6He.Boost(m_boostVect);
 	m_lv1H.Boost(m_boostVect);
-	Double_t m_sqlangpp = 180.0 * (m_lvBeam.Angle(m_lv1H.Vect()))/double(TMath::Pi());
-	//Double_t m_sqrangpp = 180.0 * (m_lvBeam.Angle(m_lv6He.Vect()))/double(TMath::Pi());
+	Double_t m_sqlangpp = m_lvBeam.Angle(m_lv1H.Vect())*TMath::RadToDeg();
+	//Double_t m_sqrangpp = m_lvBeam.Angle(m_lv6He.Vect())*TMath::RadToDeg();
 	return m_sqlangpp;
 }
 
@@ -257,9 +251,30 @@ Double_t getPPRang(Double_t m_thetaCM, TLorentzVector m_lvBeam)
 
 	m_lv6He.Boost(m_boostVect);
 	//m_lv1H.Boost(m_boostVect);
-	//Double_t m_sqlangpp = 180.0 * (m_lvBeam.Angle(m_lv1H.Vect()))/double(TMath::Pi());
-	Double_t m_sqrangpp = 180.0 * (m_lvBeam.Angle(m_lv6He.Vect()))/double(TMath::Pi());
+	//Double_t m_sqlangpp = m_lvBeam.Angle(m_lv1H.Vect())*TMath::RadToDeg();
+	Double_t m_sqrangpp = m_lvBeam.Angle(m_lv6He.Vect())*TMath::RadToDeg();
 	return m_sqrangpp;
+}
+
+Double_t getEnePP(Double_t m_thetaCM, TLorentzVector m_lvBeam)
+{
+	m_lvBeam.SetE(cs::mass6He+155.0);
+	TLorentzVector m_lv6He(m_lvBeam);
+	TLorentzVector m_lv1H(0,0,0,cs::mass1H);
+	TLorentzVector m_lvCM = m_lv6He+m_lv1H;
+	TVector3 m_boostVect = m_lvCM.BoostVector();
+
+	//m_lv6He.Boost(-m_boostVect);
+	m_lv1H.Boost(-m_boostVect);
+
+	//m_lv6He.SetTheta(TMath::Pi()-m_thetaCM);
+	m_lv1H.SetTheta(m_thetaCM);
+
+	//m_lv6He.Boost(m_boostVect);
+	m_lv1H.Boost(m_boostVect);
+	Double_t m_sqlEpp = m_lv1H.E()-m_lv1H.M();
+	//Double_t m_sqrangpp = m_lvBeam.Angle(m_lv6He.Vect())*TMath::RadToDeg();
+	return m_sqlEpp;
 }
 
 //d,d reaction
@@ -278,8 +293,8 @@ Double_t getDDRang(Double_t m_thetaCM, TLorentzVector m_lvBeam)
 
 	m_lv6He.Boost(m_boostVect);
 	//m_lv2H.Boost(m_boostVect);
-	//Double_t m_sqlangdd = 180.0 * (m_lvBeam.Angle(m_lv2H.Vect()))/double(TMath::Pi());
-	Double_t m_sqrangdd = 180.0 * (m_lvBeam.Angle(m_lv6He.Vect()))/double(TMath::Pi());
+	//Double_t m_sqlangdd = m_lvBeam.Angle(m_lv2H.Vect())*TMath::RadToDeg();
+	Double_t m_sqrangdd = m_lvBeam.Angle(m_lv6He.Vect())*TMath::RadToDeg();
 	return m_sqrangdd;
 }
 
@@ -298,9 +313,31 @@ Double_t getDDLang(Double_t m_thetaCM, TLorentzVector m_lvBeam)
 
 	//m_lv6He.Boost(m_boostVect);
 	m_lv2H.Boost(m_boostVect);
-	Double_t m_sqlangdd = 180.0 * (m_lvBeam.Angle(m_lv2H.Vect()))/double(TMath::Pi());
-	//Double_t m_sqrangdd = 180.0 * (m_lvBeam.Angle(m_lv6He.Vect()))/double(TMath::Pi());
+	Double_t m_sqlangdd = m_lvBeam.Angle(m_lv2H.Vect())*TMath::RadToDeg();
+	//Double_t m_sqrangdd = m_lvBeam.Angle(m_lv6He.Vect())*TMath::RadToDeg();
 	return m_sqlangdd;
+}
+
+Double_t getEneDD(Double_t m_thetaCM, TLorentzVector m_lvBeam)
+{
+	Double_t m_ene = 155.0 + cs::mass6He;
+	Double_t m_mom = sqrt(m_ene*m_ene - cs::mass6He*cs::mass6He);
+	TLorentzVector m_lv6He(0.0, 0.0, m_mom, m_ene);
+	TLorentzVector m_lv2H(0,0,0,cs::mass2H);
+	TLorentzVector m_lvCM = m_lv6He+m_lv2H;
+	TVector3 m_boostVect = m_lvCM.BoostVector();
+
+	//m_lv6He.Boost(-m_boostVect);
+	m_lv2H.Boost(-m_boostVect);
+
+	//m_lv6He.SetTheta(TMath::Pi()-m_thetaCM);
+	m_lv2H.SetTheta(m_thetaCM);
+
+	//m_lv6He.Boost(m_boostVect);
+	m_lv2H.Boost(m_boostVect);
+	Double_t m_sqlEdd = m_lv2H.E()-m_lv2H.M();
+	//Double_t m_sqrangdd = m_lvBeam.Angle(m_lv6He.Vect())*TMath::RadToDeg();
+	return m_sqlEdd;
 }
 
 Int_t getStripNumber(ROOT::VecOps::RVec<Double_t> &inputArray)
@@ -632,7 +669,7 @@ void loadCorrectionParameters()
 		printf("Failed to open file: %s\n", fName.c_str());
 	}
 
-	int jumpTo = cs::fileToProcess + (int)'a';
+	int jumpTo = 1 + (int)'a';
 	std::getline(outStreamGenerated, line, (char)jumpTo);
 	printf("%s\n", line.c_str());
 
@@ -690,7 +727,6 @@ void loadCalibrationParameters()
 
 void cleaner(TString inFileName)
 {
-	Double_t MWPCposContainer;
 	Double_t sqlThreshold = 0.5;
 	Double_t sqrThreshold = 2.0;
 
@@ -708,9 +744,9 @@ void cleaner(TString inFileName)
 					.Filter(filterMWPC(1),{"y1","ny1"})
 					.Filter(filterMWPC(2),{"x2","nx2"})
 					.Filter(filterMWPC(3),{"y2","ny2"})
-					.Filter(filterToF,{"tdcF3", "tdcF5"})
-					.Filter([sqlThreshold](ROOT::VecOps::RVec<unsigned short> &SQX_L){return filterSQL(SQX_L, sqlThreshold);},{"SQX_L"})
-					.Filter([sqrThreshold](ROOT::VecOps::RVec<unsigned short> &SQX_R){return filterSQR(SQX_R, sqrThreshold);},{"SQX_R"});
+					.Filter(filterToF,{"tdcF3", "tdcF5"});
+					//.Filter([sqlThreshold](ROOT::VecOps::RVec<unsigned short> &SQX_L){return filterSQL(SQX_L, sqlThreshold);},{"SQX_L"})
+					//.Filter([sqrThreshold](ROOT::VecOps::RVec<unsigned short> &SQX_R){return filterSQR(SQX_R, sqrThreshold);},{"SQX_R"});
 
 
 	outDF.Snapshot("cleaned", outFilename.Data());
@@ -791,7 +827,7 @@ void translator(TString inFileName)
 
 void analysis5(TString inFileName)
 {
-	inFileName.ReplaceAll("raw","cal");
+	inFileName.ReplaceAll("simp","cal");
 	TString treeName = "calibrated";
 	ROOT::RDataFrame inDF(treeName.Data(), inFileName.Data());
 	TString outFilename = inFileName.ReplaceAll("cal","dE").ReplaceAll("mc","mc_out");
@@ -867,8 +903,8 @@ void analysis5(TString inFileName)
 					 .Define("v6He", [](TVector3 rightLabVertex, TVector3 tarVertex){return TVector3(rightLabVertex-tarVertex);}, {"rightLabVertex", "tarVertex"})
 					 .Define("sqlang", [](TVector3 v2H, TVector3 vBeam){return v2H.Angle(vBeam)*TMath::RadToDeg();}, {"v2H", "vBeam"})
 					 .Define("sqrang", [](TVector3 v6He, TVector3 vBeam){return v6He.Angle(vBeam)*TMath::RadToDeg();}, {"v6He", "vBeam"})
-					 .Define("mc1H", getMCAngle1H, {"sqlang", "lvBeam"})
-					 .Define("mc2H", getMCAngle2H, {"sqlang", "lvBeam"})
+					 .Define("mc1H", getCMAngle1H, {"sqlang", "lvBeam"})
+					 .Define("mc2H", getCMAngle2H, {"sqlang", "lvBeam"})
 					
 					 .Define("he6", [](Double_t sqrde, Double_t sqretot){return GCutdehe6->IsInside(sqretot, sqrde);}, {"sqrde", "sqretot"})
 					 .Define("pAngAng", [](Double_t sqrang, Double_t sqlang){return GCutpAngAng->IsInside(sqrang,sqlang);}, {"sqrang","sqlang"})
@@ -883,8 +919,10 @@ void analysis5(TString inFileName)
 					 .Define("he6Ene", getDDEne, {"sqlang","lvBeam"})
 					 .Define("sqlangpp", getPPLang, {"thetaCM","lvBeam"})
 					 .Define("sqrangpp", getPPRang, {"thetaCM","lvBeam"})
+					 .Define("sqlepp", getEnePP, {"thetaCM","lvBeam"})
 					 .Define("sqlangdd", getDDLang, {"thetaCM","lvBeam"})
 					 .Define("sqrangdd", getDDRang, {"thetaCM","lvBeam"})
+					 .Define("sqledd", getEneDD, {"thetaCM","lvBeam"})
 					 .Define("mcPP", [](Double_t sqrang, Double_t sqlang){return GCutmcPP->IsInside(sqrang,sqlang);}, {"sqrang","sqlang"})
 					 .Define("mcDD", [](Double_t sqrang, Double_t sqlang){return GCutmcDD->IsInside(sqrang,sqlang);}, {"sqrang","sqlang"})
 					 .Define("mcHe6", [](Double_t sqretot, Double_t sqrde){return GCutmcHe6->IsInside(sqretot,sqrde);}, {"sqretot","sqrde"});
@@ -905,7 +943,7 @@ void ui5()
 	loadCalibrationParameters();
 	//loadCorrectionParameters();
 	TString str_name, sourceDir;
-	sourceDir = "/home/zalewski/dataTmp/raw/geo5/";
+	sourceDir = "/home/zalewski/dataTmp/simp/geo5/";
 	TSystemDirectory *dir_data = new TSystemDirectory("data",sourceDir.Data());
 	
 	TIter bluster = dir_data->GetListOfFiles();
@@ -913,18 +951,18 @@ void ui5()
 	{
 		str_name = obj->GetName();
 		std::cout<<str_name<<std::endl;
-		if (str_name.Contains("he6") ||	(str_name.Contains("mc") && !str_name.Contains("out")))
+		if (str_name.Contains("geo5") ||	(str_name.Contains("mc") && !str_name.Contains("out")))
 		{
 			TString inputFilePath = sourceDir + str_name;
 			//printf("fName:\t%s\n",inputFilePath.Data());
 			//translator(inputFilePath);
-			//cleaner(inputFilePath);
+			cleaner(inputFilePath);
 			//calibratorCaller(inputFilePath);
 			//analysis5(inputFilePath);
 		}
 	}
 
-	analysis5("/home/zalewski/dataTmp/MC/geo5/mc5_1H.root");
+	//analysis5("/home/zalewski/dataTmp/MC/geo5/mc5_1H.root");
 	//makeSmallMC();
 	//joindE();
 	stopwatch->Print();

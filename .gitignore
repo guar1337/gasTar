@@ -1,0 +1,9 @@
+
+# Formats excluded from aku repo
+*.pcm
+*.so
+*.o
+*.d
+build/
+.vscode/settings.json
+*.root

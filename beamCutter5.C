@@ -16,10 +16,10 @@ Double_t m_MWPC_2_Z = -270.0;
 
 bool filterToF(ROOT::VecOps::RVec<unsigned short> &timeF3, ROOT::VecOps::RVec<unsigned short> &timeF5)
 {
-	Double_t tF3 = ((timeF3[0]+timeF3[1]+timeF3[2]+timeF3[3])/4.0);
-	Double_t tF5 = ((timeF5[0]+timeF5[1])/2.0);
-	Double_t ToF = (tF5-tF3)*tdcBinning+ToFconstant;
-	return (ToF>150 && ToF<185);
+	Double_t tdcF3 = ((timeF3[0]+timeF3[1]+timeF3[2]+timeF3[3])/4.0);
+	Double_t tdcF5 = ((timeF5[0]+timeF5[1]+timeF5[2]+timeF5[3])/4.0);
+	Double_t ToF = (tdcF5-tdcF3)*tdcBinning+ToFconstant;
+	return (ToF>175 && ToF<185);
 }
 
 TVector3 getTarVertex(std::vector<Double_t> rvecMWPC)
@@ -234,7 +234,7 @@ int beamCutter5()
 	rnd = new TRandom3();
 	ROOT::EnableImplicitMT();
 	Int_t numberOfThreads = 20;
-	ROOT::RDataFrame inDF("simplified", "/home/zalewski/dataTmp/simp/h2_1024.root");
+	ROOT::RDataFrame inDF("simplified", "/home/zalewski/dataTmp/simp/d2_1024.root");
 	auto outDF = inDF.Filter("nx1<100 && nx2<100 && ny1<100 && ny2<100")
 					.Filter("(tdcF3[0]-tdcF3[1]) > -50.0 && (tdcF3[0]-tdcF3[1]) < 50.0")
 					.Filter("(tdcF3[0]-tdcF3[2]) > -50.0 && (tdcF3[0]-tdcF3[2]) < 50.0")
@@ -262,7 +262,7 @@ int beamCutter5()
 							.Define("geo", "5")
 							.Define("lvBeam", getLVbeam, {"MWPC_1_X", "MWPC_1_Y", "MWPC_2_X", "MWPC_2_Y", "kinE"});
 
-	newDF.Snapshot("beamSource", "/home/zalewski/dataTmp/cln/h2_1024_geo5.root"/*, columnList*/);
+	newDF.Snapshot("beamSource", "/home/zalewski/dataTmp/cln/d2_1024.root"/*, columnList*/);
 
 	return 0;
 }
